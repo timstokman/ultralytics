@@ -231,7 +231,7 @@ class ClassificationDataset(torchvision.datasets.ImageFolder):
         self.cache_ram = cache is True or cache == 'ram'
         self.cache_disk = cache == 'disk'
         self.samples = [list(x) + [Path(x[0]).with_suffix('.npy'), None] for x in self.samples]  # file, index, npy, im
-        self.torch_transforms = classify_transforms(args.imgsz)
+        self.torch_transforms = classify_transforms(args.imgsz, args.preprocessing)
         self.album_transforms = classify_albumentations(
             augment=augment,
             size=args.imgsz,

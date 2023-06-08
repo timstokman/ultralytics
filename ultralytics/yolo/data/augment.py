@@ -17,6 +17,7 @@ from ..utils.ops import segment2box
 from .utils import polygons2masks, polygons2masks_overlap
 
 POSE_FLIPLR_INDEX = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+PREPROCESSING_OPTIONS = ['letterbox', 'resize', 'padding_centercrop', 'centercrop']
 
 
 # TODO: we might need a BaseTransform to make all these augments be compatible with both classification and semantic
@@ -791,14 +792,26 @@ def v8_transforms(dataset, imgsz, hyp):
 
 
 # Classification augmentations -----------------------------------------------------------------------------------------
-def classify_transforms(size=224, mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0)):  # IMAGENET_MEAN, IMAGENET_STD
+def classify_transforms(size=224, preprocessing='default', mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0)):  # IMAGENET_MEAN, IMAGENET_STD
     # Transforms to apply if albumentations not installed
     if not isinstance(size, int):
         raise TypeError(f'classify_transforms() size {size} must be integer, not (list, tuple)')
+    if preprocessing not in PREPROCESSING_OPTIONS:
+        raise ValueError(f'preprocessing value not a valid value: {preprocessing}, must be one of: {PREPROCESSING_OPTIONS}')
+    
+    if preprocessing == 'centercrop':
+        preprocessing_transform = CenterCrop(size)
+    elif preprocessing == 'resize':
+        preprocessing_transform = Resize(size)
+    elif preprocessing == 'letterbox':
+        preprocessing_transform = ClassifyLetterBox(size)
+    elif preprocessing == 'padding_centercrop':
+        preprocessing_transform = PaddingCenterCrop(size)
+
     if any(mean) or any(std):
-        return T.Compose([CenterCrop(size), ToTensor(), T.Normalize(mean, std, inplace=True)])
+        return T.Compose([preprocessing_transform, ToTensor(), T.Normalize(mean, std, inplace=True)])
     else:
-        return T.Compose([CenterCrop(size), ToTensor()])
+        return T.Compose([preprocessing_transform, ToTensor()])
 
 
 def hsv2colorjitter(h, s, v):
@@ -872,8 +885,8 @@ class ClassifyLetterBox:
 
 class CenterCrop:
     # YOLOv8 CenterCrop class for image preprocessing, i.e. T.Compose([CenterCrop(size), ToTensor()])
+    # CenterCrop the image, then resize to make it fit the desired size
     def __init__(self, size=640):
-        """Converts an image from numpy array to PyTorch tensor."""
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
 
@@ -882,6 +895,42 @@ class CenterCrop:
         m = min(imh, imw)  # min dimension
         top, left = (imh - m) // 2, (imw - m) // 2
         return cv2.resize(im[top:top + m, left:left + m], (self.w, self.h), interpolation=cv2.INTER_LINEAR)
+
+
+class Resize:
+    # YOLOv8 Resize class for image preprocessing, i.e. T.Compose([Resize(size), ToTensor()])
+    # Resize the image to make it fit the desired size
+    def __init__(self, size=640):
+        super().__init__()
+        self.h, self.w = (size, size) if isinstance(size, int) else size
+
+    def __call__(self, im):  # im = np.array HWC
+        return cv2.resize(im, (self.w, self.h), interpolation=cv2.INTER_LINEAR)
+
+
+class PaddingCenterCrop:
+    # YOLOv8 PaddingCenterCrop class for image preprocessing, i.e. T.Compose([PaddingCenterCrop(size), ToTensor()])
+    # Pad the image to fit the desired size, preserving aspect ratio, then centercrop the image
+    # This transform is consistent with the torchvision centercrop
+    def __init__(self, size=640):
+        super().__init__()
+        self.h, self.w = (size, size) if isinstance(size, int) else size
+
+    def __call__(self, im):  # im = np.array HWC
+        imh, imw = im.shape[:2]
+
+        if self.w > imw or self.h > imh:  # Add padding if the crop is larger than the image
+            left, top, right, bottom = (
+                (self.w - imw) // 2 if self.w > imw else 0,
+                (self.h - imh) // 2 if self.h > imh else 0,
+                (self.w - imw + 1) // 2 if self.w > imw else 0,
+                (self.h - imh + 1) // 2 if self.h > imh else 0,
+            )
+            im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=(114, 114, 114))
+            imh, imw = im.shape[:2]
+
+        top, left = (int(round((imh - self.h) / 2.0)), int(round((imw - self.w) / 2.0)))
+        return im[top:top + self.h, left:left + self.w]
 
 
 class ToTensor:

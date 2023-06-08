@@ -37,6 +37,7 @@ overlap_mask: True  # masks should overlap during training (segment train only)
 mask_ratio: 4  # mask downsample ratio (segment train only)
 # Classification
 dropout: 0.0  # use dropout regularization (classify train only)
+preprocessing: centercrop # image preprocessing (classify only), i.e. letterbox, resize, padding_centercrop, or centercrop (the default)
 
 # Val/Test settings ----------------------------------------------------------------------------------------------------
 val: True  # validate/test during training
