@@ -130,21 +130,15 @@ def test_classify():
     assert len(result), 'predictor test failed'
 
 
-@pytest.mark.parametrize(
-        'image_size,imgsz',
-        [
-            ((640, 480), 500),
-            ((480, 640), 500),
-            ((640, 480), 244),
-            ((640, 480), 1024),
-            ((500, 500), 500)
-        ])
+@pytest.mark.parametrize('image_size,imgsz', [((640, 480), 500), ((480, 640), 500), ((640, 480), 244),
+                                              ((640, 480), 1024), ((500, 500), 500)])
 def test_preprocessing_classify(image_size, imgsz):
     for preprocessing in PREPROCESSING_OPTIONS:
         augment = classify_transforms(imgsz, preprocessing)
         image = np.random.randint(0, 255, (image_size[0], image_size[1], 3), dtype=np.uint8)
         preprocessed_image = augment(image)
-        assert preprocessed_image.shape[0] == 3 , 'preprocessed channelno not as expected'
-        assert preprocessed_image.shape[1] == imgsz and preprocessed_image.shape[2] == imgsz, 'preprocessed size not as expected'
+        assert preprocessed_image.shape[0] == 3, 'preprocessed channelno not as expected'
+        assert preprocessed_image.shape[1] == imgsz and preprocessed_image.shape[
+            2] == imgsz, 'preprocessed size not as expected'
         assert preprocessed_image.dtype == torch.float32, 'preprocessed type not as expected'
         assert preprocessed_image.min() >= 0 and preprocessed_image.max() <= 1, 'normalization not as expected'

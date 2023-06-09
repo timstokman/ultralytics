@@ -792,13 +792,17 @@ def v8_transforms(dataset, imgsz, hyp):
 
 
 # Classification augmentations -----------------------------------------------------------------------------------------
-def classify_transforms(size=224, preprocessing='default', mean=(0.0, 0.0, 0.0), std=(1.0, 1.0, 1.0)):  # IMAGENET_MEAN, IMAGENET_STD
+def classify_transforms(size=224,
+                        preprocessing='default',
+                        mean=(0.0, 0.0, 0.0),
+                        std=(1.0, 1.0, 1.0)):  # IMAGENET_MEAN, IMAGENET_STD
     # Transforms to apply if albumentations not installed
     if not isinstance(size, int):
         raise TypeError(f'classify_transforms() size {size} must be integer, not (list, tuple)')
     if preprocessing not in PREPROCESSING_OPTIONS:
-        raise ValueError(f'preprocessing value not a valid value: {preprocessing}, must be one of: {PREPROCESSING_OPTIONS}')
-    
+        raise ValueError(
+            f'preprocessing value not a valid value: {preprocessing}, must be one of: {PREPROCESSING_OPTIONS}')
+
     if preprocessing == 'centercrop':
         preprocessing_transform = CenterCrop(size)
     elif preprocessing == 'resize':
