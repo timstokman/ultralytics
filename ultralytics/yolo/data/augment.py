@@ -793,23 +793,23 @@ def v8_transforms(dataset, imgsz, hyp):
 
 # Classification augmentations -----------------------------------------------------------------------------------------
 def classify_transforms(size=224,
-                        preprocessing='default',
+                        preprocessing_cls='centercrop',
                         mean=(0.0, 0.0, 0.0),
                         std=(1.0, 1.0, 1.0)):  # IMAGENET_MEAN, IMAGENET_STD
     # Transforms to apply if albumentations not installed
     if not isinstance(size, int):
         raise TypeError(f'classify_transforms() size {size} must be integer, not (list, tuple)')
-    if preprocessing not in PREPROCESSING_OPTIONS:
+    if preprocessing_cls not in PREPROCESSING_OPTIONS:
         raise ValueError(
-            f'preprocessing value not a valid value: {preprocessing}, must be one of: {PREPROCESSING_OPTIONS}')
+            f'preprocessing value not a valid value: {preprocessing_cls}, must be one of: {PREPROCESSING_OPTIONS}')
 
-    if preprocessing == 'centercrop':
+    if preprocessing_cls == 'centercrop':
         preprocessing_transform = CenterCrop(size)
-    elif preprocessing == 'resize':
+    elif preprocessing_cls == 'resize':
         preprocessing_transform = Resize(size)
-    elif preprocessing == 'letterbox':
+    elif preprocessing_cls == 'letterbox':
         preprocessing_transform = ClassifyLetterBox(size)
-    elif preprocessing == 'padding_centercrop':
+    elif preprocessing_cls == 'padding_centercrop':
         preprocessing_transform = PaddingCenterCrop(size)
 
     if any(mean) or any(std):
