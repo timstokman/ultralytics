@@ -17,7 +17,7 @@ from ..utils.ops import segment2box
 from .utils import polygons2masks, polygons2masks_overlap
 
 POSE_FLIPLR_INDEX = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
-PREPROCESSING_OPTIONS = ['letterbox', 'resize', 'padding_centercrop', 'centercrop']
+CLASSIFY_PREPROCESSING_OPTIONS = ['letterbox', 'resize', 'padding_centercrop', 'centercrop']
 
 
 # TODO: we might need a BaseTransform to make all these augments be compatible with both classification and semantic
@@ -799,9 +799,9 @@ def classify_transforms(size=224,
     # Transforms to apply if albumentations not installed
     if not isinstance(size, int):
         raise TypeError(f'classify_transforms() size {size} must be integer, not (list, tuple)')
-    if preprocessing_cls not in PREPROCESSING_OPTIONS:
+    if preprocessing_cls not in CLASSIFY_PREPROCESSING_OPTIONS:
         raise ValueError(
-            f'preprocessing value not a valid value: {preprocessing_cls}, must be one of: {PREPROCESSING_OPTIONS}')
+            f'preprocessing value not a valid value: {preprocessing_cls}, must be one of: {CLASSIFY_PREPROCESSING_OPTIONS}')
 
     if preprocessing_cls == 'centercrop':
         preprocessing_transform = CenterCrop(size)
