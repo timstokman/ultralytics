@@ -801,7 +801,8 @@ def classify_transforms(size=224,
         raise TypeError(f'classify_transforms() size {size} must be integer, not (list, tuple)')
     if preprocessing_cls not in CLASSIFY_PREPROCESSING_OPTIONS:
         raise ValueError(
-            f'preprocessing value not a valid value: {preprocessing_cls}, must be one of: {CLASSIFY_PREPROCESSING_OPTIONS}')
+            f'preprocessing value not a valid value: {preprocessing_cls}, must be one of: {CLASSIFY_PREPROCESSING_OPTIONS}'
+        )
 
     if preprocessing_cls == 'centercrop':
         preprocessing_transform = CenterCrop(size)
