@@ -8,7 +8,7 @@ import torch
 
 from ultralytics import YOLO
 from ultralytics.yolo.cfg import get_cfg
-from ultralytics.yolo.data.augment import PREPROCESSING_OPTIONS, classify_transforms
+from ultralytics.yolo.data.augment import CLASSIFY_PREPROCESSING_OPTIONS, classify_transforms
 from ultralytics.yolo.engine.exporter import Exporter
 from ultralytics.yolo.utils import DEFAULT_CFG, ROOT, SETTINGS
 from ultralytics.yolo.v8 import classify, detect, segment
@@ -133,7 +133,7 @@ def test_classify():
 @pytest.mark.parametrize('image_size,imgsz', [((640, 480), 500), ((480, 640), 500), ((640, 480), 244),
                                               ((640, 480), 1024), ((500, 500), 500)])
 def test_preprocessing_classify(image_size, imgsz):
-    for preprocessing in PREPROCESSING_OPTIONS:
+    for preprocessing in CLASSIFY_PREPROCESSING_OPTIONS:
         augment = classify_transforms(imgsz, preprocessing)
         image = np.random.randint(0, 255, (image_size[0], image_size[1], 3), dtype=np.uint8)
         preprocessed_image = augment(image)
