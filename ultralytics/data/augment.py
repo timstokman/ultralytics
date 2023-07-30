@@ -898,6 +898,7 @@ class CenterCrop:
     YOLOv8 CenterCrop class for image preprocessing, i.e. T.Compose([CenterCrop(size), ToTensor()])
     CenterCrop the image, then resize to make it fit the desired size
     """
+
     def __init__(self, size=640):
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
