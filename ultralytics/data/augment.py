@@ -915,6 +915,7 @@ class Resize:
     YOLOv8 Resize class for image preprocessing, i.e. T.Compose([Resize(size), ToTensor()])
     Resize the image to make it fit the desired size
     """
+
     def __init__(self, size=640):
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
@@ -929,6 +930,7 @@ class PaddingCenterCrop:
     Pad the image to fit the desired size, preserving aspect ratio, then centercrop the image
     This transform is consistent with the torchvision centercrop
     """
+
     def __init__(self, size=640):
         super().__init__()
         self.h, self.w = (size, size) if isinstance(size, int) else size
