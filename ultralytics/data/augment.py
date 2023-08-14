@@ -19,6 +19,7 @@ from .utils import polygons2masks, polygons2masks_overlap
 
 CLASSIFY_PREPROCESSING_OPTIONS = ['letterbox', 'resize', 'padding_centercrop', 'centercrop']
 
+
 # TODO: we might need a BaseTransform to make all these augments be compatible with both classification and semantic
 class BaseTransform:
 
