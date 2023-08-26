@@ -5,10 +5,12 @@ Train a model on a dataset
 Usage:
     $ yolo mode=train model=yolov8n.pt data=coco128.yaml imgsz=640 epochs=100 batch=16
 """
+
 import math
 import os
 import subprocess
 import time
+import warnings
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -48,8 +50,8 @@ class BaseTrainer:
         callbacks (defaultdict): Dictionary of callbacks.
         save_dir (Path): Directory to save results.
         wdir (Path): Directory to save weights.
-        last (Path): Path to last checkpoint.
-        best (Path): Path to best checkpoint.
+        last (Path): Path to the last checkpoint.
+        best (Path): Path to the best checkpoint.
         save_period (int): Save checkpoint every x epochs (disabled if < 1).
         batch_size (int): Batch size for training.
         epochs (int): Number of epochs to train for.
@@ -80,7 +82,7 @@ class BaseTrainer:
             overrides (dict, optional): Configuration overrides. Defaults to None.
         """
         self.args = get_cfg(cfg, overrides)
-        self.check_resume()
+        self.check_resume(overrides)
         self.device = select_device(self.args.device, self.args.batch)
         self.validator = None
         self.model = None
@@ -182,7 +184,7 @@ class BaseTrainer:
             # Command
             cmd, file = generate_ddp_command(world_size, self)
             try:
-                LOGGER.info(f'DDP command: {cmd}')
+                LOGGER.info(f'{colorstr("DDP:")} debug command {" ".join(cmd)}')
                 subprocess.run(cmd, check=True)
             except Exception as e:
                 raise e
@@ -195,7 +197,7 @@ class BaseTrainer:
         """Initializes and sets the DistributedDataParallel parameters for training."""
         torch.cuda.set_device(RANK)
         self.device = torch.device('cuda', RANK)
-        LOGGER.info(f'DDP info: RANK {RANK}, WORLD_SIZE {world_size}, DEVICE {self.device}')
+        # LOGGER.info(f'DDP info: RANK {RANK}, WORLD_SIZE {world_size}, DEVICE {self.device}')
         os.environ['NCCL_BLOCKING_WAIT'] = '1'  # set to enforce timeout
         dist.init_process_group(
             'nccl' if dist.is_nccl_available() else 'gloo',
@@ -297,8 +299,7 @@ class BaseTrainer:
         self.epoch_time_start = time.time()
         self.train_time_start = time.time()
         nb = len(self.train_loader)  # number of batches
-        nw = max(round(self.args.warmup_epochs *
-                       nb), 100) if self.args.warmup_epochs > 0 else -1  # number of warmup iterations
+        nw = max(round(self.args.warmup_epochs * nb), 100) if self.args.warmup_epochs > 0 else -1  # warmup iterations
         last_opt_step = -1
         self.run_callbacks('on_train_start')
         LOGGER.info(f'Image sizes {self.args.imgsz} train, {self.args.imgsz} val\n'
@@ -377,7 +378,9 @@ class BaseTrainer:
 
             self.lr = {f'lr/pg{ir}': x['lr'] for ir, x in enumerate(self.optimizer.param_groups)}  # for loggers
 
-            self.scheduler.step()
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')  # suppress 'Detected lr_scheduler.step() before optimizer.step()'
+                self.scheduler.step()
             self.run_callbacks('on_train_epoch_end')
 
             if RANK in (-1, 0):
@@ -553,7 +556,7 @@ class BaseTrainer:
         n = len(metrics) + 1  # number of cols
         s = '' if self.csv.exists() else (('%23s,' * n % tuple(['epoch'] + keys)).rstrip(',') + '\n')  # header
         with open(self.csv, 'a') as f:
-            f.write(s + ('%23.5g,' * n % tuple([self.epoch] + vals)).rstrip(',') + '\n')
+            f.write(s + ('%23.5g,' * n % tuple([self.epoch + 1] + vals)).rstrip(',') + '\n')
 
     def plot_metrics(self):
         """Plot and display metrics visually."""
@@ -575,7 +578,7 @@ class BaseTrainer:
                     self.metrics.pop('fitness', None)
                     self.run_callbacks('on_fit_epoch_end')
 
-    def check_resume(self):
+    def check_resume(self, overrides):
         """Check if resume checkpoint exists and update arguments accordingly."""
         resume = self.args.resume
         if resume:
@@ -588,8 +591,13 @@ class BaseTrainer:
                 if not Path(ckpt_args['data']).exists():
                     ckpt_args['data'] = self.args.data
 
+                resume = True
                 self.args = get_cfg(ckpt_args)
-                self.args.model, resume = str(last), True  # reinstate
+                self.args.model = str(last)  # reinstate model
+                for k in 'imgsz', 'batch':  # allow arg updates to reduce memory on resume if crashed due to CUDA OOM
+                    if k in overrides:
+                        setattr(self.args, k, overrides[k])
+
             except Exception as e:
                 raise FileNotFoundError('Resume checkpoint not found. Please pass a valid checkpoint to resume from, '
                                         "i.e. 'yolo train resume model=path/to/last.pt'") from e
